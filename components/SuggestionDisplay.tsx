@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import {
   Card,
   CardContent,
@@ -11,18 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "./ui/button";
 import { Separator } from "@/components/ui/separator";
 import LoadingBar from "./LoadingBar";
+import { RatingStars } from '@/components/RatingStars';
+import { Suggestion, SavedSuggestion } from '../types';
+import { toast } from 'react-toastify';
 
-interface SuggestionProps {
-  suggestion: {
-    item: string;
-    description: string;
-    source: string;
-    estimatedPrice: string;
-    calories: string;
-  };
+
+interface SuggestionDisplayProps {
+  suggestion: Suggestion;
   isLoading: boolean;
-  onSave: () => void;
   onNewSuggestion: () => void;
+  onSave: (savedSuggestion: SavedSuggestion) => void;
 }
 
 const SuggestionDisplay = ({
@@ -30,7 +28,25 @@ const SuggestionDisplay = ({
   isLoading,
   onSave,
   onNewSuggestion,
-}: SuggestionProps) => {
+}: SuggestionDisplayProps) => {
+  const [rating, setRating] = useState(0);
+
+
+  const handleSave = () => {
+    const savedSuggestion: SavedSuggestion = {
+      ...suggestion,
+      id: Date.now().toString(), // Simple ID generation
+      rating,
+      date: new Date().toISOString()
+    };
+    onSave(savedSuggestion);
+    toast.success('Suggestion saved successfully!');
+  };
+
+  const handleRate = (newRating: number) => {
+    setRating(newRating);
+  };
+
   const renderInfo = (label: string, value: string) => (
     <div className="flex justify-between items-center">
       <span className="font-semibold">{label}:</span>
@@ -43,6 +59,7 @@ const SuggestionDisplay = ({
       )}
     </div>
   );
+
   return (
     <Card className="mt-8">
       <CardHeader>
@@ -60,13 +77,12 @@ const SuggestionDisplay = ({
           {renderInfo("Calories", suggestion.calories)}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={onSave} disabled={isLoading}>
-          Save Suggestion
-        </Button>
-        <Button variant="orange" onClick={onNewSuggestion} disabled={isLoading}>
-          New Suggestion
-        </Button>
+      <CardFooter className="flex flex-col items-start space-y-4">
+        <RatingStars rating={rating} onRate={handleRate} />
+        <div className="flex justify-between w-full">
+          <Button variant="outline" onClick={handleSave} disabled={isLoading}>Save Suggestion</Button>
+          <Button onClick={onNewSuggestion} disabled={isLoading}>New Suggestion</Button>
+        </div>
       </CardFooter>
     </Card>
   );

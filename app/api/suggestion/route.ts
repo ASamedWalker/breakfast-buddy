@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 export async function POST(req: Request) {
   try {
-    const { userInput, userPreferences } = await req.json();
+    const { userInput, userPreferences, mood, weather } = await req.json();
 
     if (!userInput || !userPreferences) {
       return NextResponse.json(
@@ -15,34 +15,45 @@ export async function POST(req: Request) {
     }
 
     const preferencesString = `
-      Dietary Restrictions: ${userPreferences.dietaryRestrictions.join(', ')}
-      Allergies: ${userPreferences.allergies.join(', ')}
-      Favorite Ingredients: ${userPreferences.favoriteIngredients.join(', ')}
-      Disliked Ingredients: ${userPreferences.dislikedIngredients.join(', ')}
+      Dietary Restrictions: ${userPreferences.dietaryRestrictions.join(", ")}
+      Allergies: ${userPreferences.allergies.join(", ")}
+      Favorite Ingredients: ${userPreferences.favoriteIngredients.join(", ")}
+      Disliked Ingredients: ${userPreferences.dislikedIngredients.join(", ")}
       Calorie Preference: ${userPreferences.caloriePreference}
     `;
 
-    const systemMessage = `You are a helpful assistant that suggests quick grab-and-go breakfast options. Provide diverse suggestions from various fast-food chains, convenience stores, and deli grocery stores. Consider the following user preferences:
+    const contextString = `
+    User's Mood: ${mood || "Not specified"}
+    Current Weather: ${weather || "Not specified"}
+  `;
+
+    const systemMessage = `You are a helpful assistant that suggests quick grab-and-go breakfast options.
+
+    Provide diverse suggestions from various fast-food chains, convenience stores, and deli grocery stores. Consider the following user preferences and context:
 
     ${preferencesString}
+
+    ${contextString}
+
+    Tailor your suggestion based on the user's mood and the weather. For example, suggest comforting foods for a bad mood or rainy weather, or refreshing options for hot weather.
 
     Always respond in the following format:
 
     Item: [Name of the breakfast item]
-    Description: [Brief description of the item]
+    Description: [Brief description of the item, including how it relates to the user's mood or weather]
     Location: [Where to get it - be specific and varied]
     Price: [Estimated price]
     Calories: [Approximate calories]
 
     Ensure all fields are filled out, even if you need to make an educated guess.`;
 
-    const userMessage = `Based on the following input and considering the user's preferences, suggest a quick grab-and-go breakfast option: ${userInput}`;
+  const userMessage = `Based on the following input and considering the user's preferences, mood, and weather, suggest a quick grab-and-go breakfast option: ${userInput}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         { role: "system", content: systemMessage },
-        { role: "user", content: userMessage }
+        { role: "user", content: userMessage },
       ],
       max_tokens: 250,
     });

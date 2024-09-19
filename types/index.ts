@@ -24,4 +24,10 @@ export interface SavedSuggestion extends Suggestion {
   id: string;
   rating: number;
   date: string;
+  isFavorite?: boolean;
+}
+
+
+export interface MealPlan {
+  [date: string]: SavedSuggestion | null;
 }
