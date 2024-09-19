@@ -1,19 +1,32 @@
 "use server";
 import { NextResponse } from "next/server";
 import openai from "@/lib/openai";
+import { toast } from "react-toastify";
 
 export async function POST(req: Request) {
   try {
-    const { userInput } = await req.json();
+    const { userInput, userPreferences } = await req.json();
 
-    if (!userInput) {
+    if (!userInput || !userPreferences) {
       return NextResponse.json(
-        { error: "User input is required" },
+        { error: "Missing userInput or userPreferences" },
         { status: 400 }
       );
     }
 
-    const systemMessage = `You are a helpful assistant that suggests quick grab-and-go breakfast options. Provide diverse suggestions from various fast-food chains, convenience stores, and deli grocery stores. Avoid repeatedly suggesting the same store. Always respond in the following format:
+    const preferencesString = `
+      Dietary Restrictions: ${userPreferences.dietaryRestrictions.join(', ')}
+      Allergies: ${userPreferences.allergies.join(', ')}
+      Favorite Ingredients: ${userPreferences.favoriteIngredients.join(', ')}
+      Disliked Ingredients: ${userPreferences.dislikedIngredients.join(', ')}
+      Calorie Preference: ${userPreferences.caloriePreference}
+    `;
+
+    const systemMessage = `You are a helpful assistant that suggests quick grab-and-go breakfast options. Provide diverse suggestions from various fast-food chains, convenience stores, and deli grocery stores. Consider the following user preferences:
+
+    ${preferencesString}
+
+    Always respond in the following format:
 
     Item: [Name of the breakfast item]
     Description: [Brief description of the item]
@@ -23,23 +36,15 @@ export async function POST(req: Request) {
 
     Ensure all fields are filled out, even if you need to make an educated guess.`;
 
-    const userMessage = `Based on the following input, suggest a quick grab-and-go breakfast option: ${userInput}
-
-    Choose from a variety of locations such as Starbucks, Dunkin' Donuts, McDonald's, Subway, local delis, 7-Eleven, Whole Foods, Panera Bread, or any other relevant fast-food chain, convenience store, or grocery store. Don't always choose the same location.`;
+    const userMessage = `Based on the following input and considering the user's preferences, suggest a quick grab-and-go breakfast option: ${userInput}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        {
-          role: "system",
-          content: systemMessage,
-        },
-        {
-          role: "user",
-          content: userMessage,
-        },
+        { role: "system", content: systemMessage },
+        { role: "user", content: userMessage }
       ],
-      max_tokens: 150,
+      max_tokens: 250,
     });
 
     const suggestionText = completion.choices[0].message.content;
@@ -59,7 +64,7 @@ export async function POST(req: Request) {
       .split("\n")
       .filter((part) => part.trim() !== "");
     if (parts.length < 5) {
-      throw new Error("Incomplete suggestion received from AI");
+      toast.error("Failed to generate a suggestion. Please try again.");
     }
 
     const suggestion = {
@@ -72,16 +77,13 @@ export async function POST(req: Request) {
 
     // Validate that all fields have content
     if (Object.values(suggestion).some((value) => !value)) {
-      console.warn(
-        "Some fields are missing in the AI response:",
-        suggestionText
-      );
+      toast.error("Failed to generate a suggestion. Please try again.");
       // You might want to handle this case, perhaps by re-prompting the AI or informing the user
     }
 
     return NextResponse.json({ suggestion });
   } catch (error) {
-    console.error("Error:", error);
+    toast.error(`Failed to generate a suggestion. Please try again. ${error}`);
     return NextResponse.json(
       { error: "Failed to generate suggestion" },
       { status: 500 }
