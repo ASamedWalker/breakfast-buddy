@@ -27,6 +27,8 @@ import PreferencesForm from "@/components/PreferencesForm";
 import SavedSuggestions from "@/components/SavedSuggestions";
 import { UserPreferences } from "../types";
 import { SavedSuggestion } from "../types";
+import AnalyticsPage from "./AnalyticsPage";
+import WeatherDisplay from "./WeatherDisplay";
 
 const InputSection = () => {
   const [userInput, setUserInput] = useState("");
@@ -47,6 +49,8 @@ const InputSection = () => {
   );
   const [mood, setMood] = useState<string>("");
   const [weather, setWeather] = useState<string>("");
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showSavedSuggestions, setShowSavedSuggestions] = useState(false);
 
   useEffect(() => {
     // Load saved suggestions from localStorage on component mount
@@ -101,9 +105,16 @@ const InputSection = () => {
   };
 
   const handleSaveSuggestion = (savedSuggestion: SavedSuggestion) => {
+    const newSavedSuggestion: SavedSuggestion = {
+      ...savedSuggestion,
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      mood: mood,
+      weather: weather,
+    };
     const updatedSavedSuggestions = [
       ...savedSuggestions,
-      { ...savedSuggestion, isFavorite: false },
+      { ...newSavedSuggestion, isFavorite: false },
     ];
     setSavedSuggestions(updatedSavedSuggestions);
     localStorage.setItem(
@@ -141,7 +152,8 @@ const InputSection = () => {
 
   return (
     <div>
-      <Card>
+      <WeatherDisplay />
+      <Card className="mt-4">
         <CardHeader>
           <CardTitle>What&apos;s for breakfast?</CardTitle>
           <CardDescription>
@@ -216,6 +228,16 @@ const InputSection = () => {
         onDelete={handleDeleteSuggestion}
         onToggleFavorite={handleToggleFavorite}
       />
+     <div className="mt-4">
+        <Button
+          variant="outline"
+          onClick={() => setShowAnalytics(!showAnalytics)}
+        >
+          {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+        </Button>
+
+        {showAnalytics && <AnalyticsPage savedSuggestions={savedSuggestions} />}
+      </div>
       <WeeklyMealPlanner savedSuggestions={savedSuggestions} />
     </div>
   );

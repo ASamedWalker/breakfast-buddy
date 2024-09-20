@@ -25,6 +25,8 @@ export interface SavedSuggestion extends Suggestion {
   rating: number;
   date: string;
   isFavorite?: boolean;
+  mood?: string;
+  weather?: string;
 }
 
 
