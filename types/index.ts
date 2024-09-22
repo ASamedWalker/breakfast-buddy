@@ -19,6 +19,7 @@ export interface DetailedNutritionInfo {
   sugar: number;
 }
 
+// Keep the existing Suggestion interface as is
 export interface Suggestion {
   item: string;
   description: string;

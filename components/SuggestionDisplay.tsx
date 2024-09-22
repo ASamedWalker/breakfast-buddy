@@ -16,7 +16,6 @@ import { Suggestion, SavedSuggestion, DetailedNutritionInfo } from "../types";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "react-toastify";
 import { calculateCalories } from "@/utils/nutritionCalculator";
-import axios from "axios";
 
 interface SuggestionDisplayProps {
   suggestion: Suggestion;
@@ -40,32 +39,8 @@ const SuggestionDisplay = ({
 }: SuggestionDisplayProps) => {
   const [rating, setRating] = useState(0);
   const [showDetailedNutrition, setShowDetailedNutrition] = useState(false);
-  const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
-  const [restaurantError, setRestaurantError] = useState<string | null>(null);
   const [isLoadingRestaurants, setIsLoadingRestaurants] = useState(false);
 
-  const fetchNearbyRestaurants = async () => {
-    setIsLoadingRestaurants(true);
-    setRestaurantError(null);
-    try {
-      const response = await axios.get("/api/uber-eats/search", {
-        params: {
-          latitude: 40.7128, // New York City coordinates
-          longitude: -74.006,
-        },
-      });
-      setNearbyRestaurants(response?.data.restaurants || []);
-    } catch (error) {
-      console.error("Error fetching nearby restaurants:", error);
-      setRestaurantError("Failed to fetch nearby restaurants");
-    } finally {
-      setIsLoadingRestaurants(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNearbyRestaurants();
-  }, []);
   const handleSave = () => {
     const savedSuggestion: SavedSuggestion = {
       ...suggestion,
@@ -156,17 +131,7 @@ const SuggestionDisplay = ({
             >
               {isLoadingRestaurants ? "Refreshing..." : "Refresh Restaurants"}
             </Button>
-            {restaurantError ? (
-              <div className="mt-4 text-red-500">{restaurantError}</div>
-            ) : nearbyRestaurants.length > 0 ? (
-              <ul className="mt-2">
-                {nearbyRestaurants.map((restaurant) => (
-                  <li key={restaurant.id}>{restaurant.name}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-2">No nearby restaurants found</p>
-            )}
+            /
           </div>
         </div>
       </CardContent>

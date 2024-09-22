@@ -25,7 +25,7 @@ import SuggestionDisplay from "./SuggestionDisplay";
 import WeeklyMealPlanner from "./WeeklyMealPlanner";
 import PreferencesForm from "@/components/PreferencesForm";
 import SavedSuggestions from "@/components/SavedSuggestions";
-import { UserPreferences } from "../types";
+import { DetailedNutritionInfo, UserPreferences } from "../types";
 import { SavedSuggestion } from "../types";
 import AnalyticsPage from "./AnalyticsPage";
 import WeatherDisplay from "./WeatherDisplay";
@@ -72,13 +72,13 @@ const InputSection = () => {
     setError(null);
 
     try {
-      const response = await axios.post("/api/suggestion", {
+      const response = await axios.post<{ suggestion: string; detailedNutrition: DetailedNutritionInfo }>("/api/suggestion", {
         userInput,
         userPreferences,
         mood,
         weather,
       });
-      setSuggestion(response.data.suggestion);
+      // setSuggestion(response.data.suggestion);
       setDetailedNutrition(response.data.detailedNutrition);
       toast.success("Suggestion generated successfully!");
       // Simulate a delay for loading details
