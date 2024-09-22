@@ -50,7 +50,9 @@ const InputSection = () => {
   const [mood, setMood] = useState<string>("");
   const [weather, setWeather] = useState<string>("");
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [showSavedSuggestions, setShowSavedSuggestions] = useState(false);
+  const [detailedNutrition, setDetailedNutrition] = useState<
+    DetailedNutritionInfo | undefined
+  >(undefined);
 
   useEffect(() => {
     // Load saved suggestions from localStorage on component mount
@@ -59,11 +61,6 @@ const InputSection = () => {
       setSavedSuggestions(JSON.parse(loaded));
     }
   }, []);
-
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await getSuggestion();
-  };
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setUserInput(event.target.value);
@@ -82,6 +79,7 @@ const InputSection = () => {
         weather,
       });
       setSuggestion(response.data.suggestion);
+      setDetailedNutrition(response.data.detailedNutrition);
       toast.success("Suggestion generated successfully!");
       // Simulate a delay for loading details
       setTimeout(() => setIsLoadingDetails(false), 1500);
@@ -92,6 +90,11 @@ const InputSection = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await getSuggestion();
   };
 
   const handleNewSuggestion = () => {
@@ -218,6 +221,7 @@ const InputSection = () => {
       {suggestion && (
         <SuggestionDisplay
           suggestion={suggestion}
+          detailedNutrition={detailedNutrition}
           isLoading={isLoadingDetails}
           onNewSuggestion={handleNewSuggestion}
           onSave={handleSaveSuggestion}
@@ -228,12 +232,12 @@ const InputSection = () => {
         onDelete={handleDeleteSuggestion}
         onToggleFavorite={handleToggleFavorite}
       />
-     <div className="mt-4">
+      <div className="mt-4">
         <Button
           variant="outline"
           onClick={() => setShowAnalytics(!showAnalytics)}
         >
-          {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+          {showAnalytics ? "Hide Analytics" : "Show Analytics"}
         </Button>
 
         {showAnalytics && <AnalyticsPage savedSuggestions={savedSuggestions} />}

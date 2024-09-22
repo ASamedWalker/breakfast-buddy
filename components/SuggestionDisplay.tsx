@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -11,36 +11,70 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "./ui/button";
 import { Separator } from "@/components/ui/separator";
 import LoadingBar from "./LoadingBar";
-import { RatingStars } from '@/components/RatingStars';
-import { Suggestion, SavedSuggestion } from '../types';
-import { toast } from 'react-toastify';
-
+import { RatingStars } from "@/components/RatingStars";
+import { Suggestion, SavedSuggestion, DetailedNutritionInfo } from "../types";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { toast } from "react-toastify";
+import { calculateCalories } from "@/utils/nutritionCalculator";
+import axios from "axios";
 
 interface SuggestionDisplayProps {
   suggestion: Suggestion;
+  detailedNutrition?: DetailedNutritionInfo;
   isLoading: boolean;
   onNewSuggestion: () => void;
   onSave: (savedSuggestion: SavedSuggestion) => void;
 }
 
+interface Restaurant {
+  id: string;
+  name: string;
+}
+
 const SuggestionDisplay = ({
   suggestion,
   isLoading,
+  detailedNutrition,
   onSave,
   onNewSuggestion,
 }: SuggestionDisplayProps) => {
   const [rating, setRating] = useState(0);
+  const [showDetailedNutrition, setShowDetailedNutrition] = useState(false);
+  const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
+  const [restaurantError, setRestaurantError] = useState<string | null>(null);
+  const [isLoadingRestaurants, setIsLoadingRestaurants] = useState(false);
 
+  const fetchNearbyRestaurants = async () => {
+    setIsLoadingRestaurants(true);
+    setRestaurantError(null);
+    try {
+      const response = await axios.get("/api/uber-eats/search", {
+        params: {
+          latitude: 40.7128, // New York City coordinates
+          longitude: -74.006,
+        },
+      });
+      setNearbyRestaurants(response?.data.restaurants || []);
+    } catch (error) {
+      console.error("Error fetching nearby restaurants:", error);
+      setRestaurantError("Failed to fetch nearby restaurants");
+    } finally {
+      setIsLoadingRestaurants(false);
+    }
+  };
 
+  useEffect(() => {
+    fetchNearbyRestaurants();
+  }, []);
   const handleSave = () => {
     const savedSuggestion: SavedSuggestion = {
       ...suggestion,
       id: Date.now().toString(), // Simple ID generation
       rating,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
     };
     onSave(savedSuggestion);
-    toast.success('Suggestion saved successfully!');
+    toast.success("Suggestion saved successfully!");
   };
 
   const handleRate = (newRating: number) => {
@@ -60,6 +94,24 @@ const SuggestionDisplay = ({
     </div>
   );
 
+  const renderDetailedNutrition = () => (
+    <div className="mt-4 space-y-2">
+      <h4 className="font-semibold">Detailed Nutrition Information:</h4>
+      {renderInfo("Protein", `${detailedNutrition?.protein}g`)}
+      {renderInfo("Carbs", `${detailedNutrition?.carbs}g`)}
+      {renderInfo("Fat", `${detailedNutrition?.fat}g`)}
+      {renderInfo("Fiber", `${detailedNutrition?.fiber}g`)}
+      {renderInfo("Sugar", `${detailedNutrition?.sugar}g`)}
+    </div>
+  );
+
+  const calculatedCalories = detailedNutrition
+    ? Math.round(calculateCalories(detailedNutrition))
+    : null;
+  const suggestedCalories = suggestion.calories
+    ? parseInt(suggestion.calories)
+    : null;
+
   return (
     <Card className="mt-8">
       <CardHeader>
@@ -75,17 +127,61 @@ const SuggestionDisplay = ({
           {renderInfo("Estimated price", suggestion.estimatedPrice)}
           <Separator />
           {renderInfo("Calories", suggestion.calories)}
+          {calculatedCalories && calculatedCalories !== suggestedCalories && (
+            <p className="text-sm text-yellow-600">
+              Calculated calories: {calculatedCalories} cal
+            </p>
+          )}
+          {detailedNutrition && (
+            <>
+              <Separator />
+              <Button
+                variant="ghost"
+                onClick={() => setShowDetailedNutrition(!showDetailedNutrition)}
+                className="w-full flex justify-between items-center"
+              >
+                <span className="font-semibold text-sm uppercase tracking-wide text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                  Detailed Nutrition
+                </span>
+                {showDetailedNutrition ? <ChevronUp /> : <ChevronDown />}
+              </Button>
+              {showDetailedNutrition && renderDetailedNutrition()}
+            </>
+          )}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Nearby Restaurants:</h3>
+            <Button
+              onClick={fetchNearbyRestaurants}
+              disabled={isLoadingRestaurants}
+            >
+              {isLoadingRestaurants ? "Refreshing..." : "Refresh Restaurants"}
+            </Button>
+            {restaurantError ? (
+              <div className="mt-4 text-red-500">{restaurantError}</div>
+            ) : nearbyRestaurants.length > 0 ? (
+              <ul className="mt-2">
+                {nearbyRestaurants.map((restaurant) => (
+                  <li key={restaurant.id}>{restaurant.name}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2">No nearby restaurants found</p>
+            )}
+          </div>
         </div>
       </CardContent>
       <CardFooter className="flex flex-col items-start space-y-4">
         <RatingStars rating={rating} onRate={handleRate} />
         <div className="flex justify-between w-full">
-          <Button variant="outline" onClick={handleSave} disabled={isLoading}>Save Suggestion</Button>
-          <Button onClick={onNewSuggestion} disabled={isLoading}>New Suggestion</Button>
+          <Button variant="outline" onClick={handleSave} disabled={isLoading}>
+            Save Suggestion
+          </Button>
+          <Button onClick={onNewSuggestion} disabled={isLoading}>
+            New Suggestion
+          </Button>
         </div>
       </CardFooter>
     </Card>
   );
 };
-
 export default SuggestionDisplay;

@@ -11,6 +11,13 @@ export interface PreferencesFormProps {
   onSaved: (preferences: UserPreferences) => void;
 }
 
+export interface DetailedNutritionInfo {
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  sugar: number;
+}
 
 export interface Suggestion {
   item: string;
@@ -33,3 +40,4 @@ export interface SavedSuggestion extends Suggestion {
 export interface MealPlan {
   [date: string]: SavedSuggestion | null;
 }
+
